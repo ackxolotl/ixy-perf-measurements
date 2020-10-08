@@ -1,12 +1,12 @@
 #!/bin/bash
 
 # ADJUST PCIE ADDRESSES OR THIS WILL CRASH YOUR SYSTEM
-export PCIE_IN="XXXX:XX:XX.X"
-export PCIE_OUT="YYYY:YY:YY.Y"
+export PCIE_IN="0000:03:00.0"
+export PCIE_OUT="0000:03:00.1"
 
 # specify directories for ixy and measurement results
-export IXY_DIR="/path/to/ixy"
-export RESULTS_DIR="path/to/resultdir"
+export IXY_DIR="/root/ixy.rs"
+export RESULTS_DIR="/root/results"
 
 if [[ -d $RESULTS_DIR ]] ; then 
 	echo "Result directory: $RESULTS_DIR"
@@ -34,20 +34,19 @@ do
 	echo -n "Set CPU freq to (% of spec rate):" 
 	cat /sys/devices/system/cpu/intel_pstate/max_perf_pct
 
-	kill $(pidof ixy-fwd)
-		taskset -c 1 ./ixy-fwd $PCIE_IN $PCIE_OUT > "$RESULTS_DIR/ixy-cpu_$CPU.txt" & 
+	taskset -c 1 ./target/release/examples/forwarder $PCIE_IN $PCIE_OUT > "$RESULTS_DIR/ixy-cpu_$CPU.txt" &
 		
 	if [[ $PERF_STAT == 1 ]] ; then
 		sleep 5
-		perf stat -d --pid $(pidof ixy-fwd) -o "$RESULTS_DIR/perf-stat-cpu_$CPU.txt"  &
+		perf stat -d --pid $(pidof forwarder) -o "$RESULTS_DIR/perf-stat-cpu_$CPU.txt"  &
 	fi
 		
-	sleep 60
+	sleep 10
 		
 	if [[ $PERF_STAT == 1 ]] ; then
 		kill -s 2 $(pidof perf_4.9)
 		sleep 1
 	fi
 
-	kill $(pidof ixy-fwd)
+	kill $(pidof forwarder)
 done
